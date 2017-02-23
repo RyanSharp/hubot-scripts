@@ -42,6 +42,14 @@ class Buy(RequestHandler):
             if username:
                 account = get_account(username)
                 funds = account.cash_funds
+                shorts = account.shorts if account.shorts else []
+                for short in shorts:
+                    data = get_stock_data_from_yahoo(short.ticker)
+                    asset_volume = data["market_volume"]
+                    if short.market_volume != int(asset_volume):
+                        short.quantity = short.quantity * (int(asset_volume)/short.market_volume)
+                        short.market_volume = int(asset_volume)
+                    funds -= short.quantity * data["price"]
                 purchase_cost = quantity * stock_data["price"]
                 if purchase_cost <= funds:
                     account.cash_funds -= purchase_cost
@@ -104,12 +112,12 @@ class StatusUpdate(RequestHandler):
                 if short.market_volume != int(asset_volume):
                     short.quantity = short.quantity * (int(asset_volume)/short.market_volume)
                     short.market_volume = int(asset_volume)
-                rdict["holdings"].append({
+                rdict["shorts"].append({
                     "symbol": short.ticker,
                     "quantity": short.quantity,
                     "asset_value": short.quantity * stock_data["price"],
                 })
-                total -= (short.quantity * stock_data["price"])
+                total += -(short.quantity * stock_data["price"])
             rdict["cash"] = account.cash_funds
             rdict["portfolio_value"] = account.cash_funds + total
             account.put()
