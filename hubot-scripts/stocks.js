@@ -1,4 +1,4 @@
-var config = require("config");
+var config = require("./config");
 
 module.exports = function(robot) {
     robot.hear(/stock quote (.*)/, function(msg) {
