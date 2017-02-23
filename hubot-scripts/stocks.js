@@ -49,6 +49,12 @@ module.exports = function(robot) {
                                 message += holding.symbol + " - " + holding.quantity + " - $" + holding.asset_value + " ($" + (holding.asset_value/holding.quantity) + " per share)\n";
                             });
                         }
+                        if (response.shorts && response.shorts.length > 0) {
+                            message += "Short Positions:\n";
+                            response.shorts.map(function(short) {
+                                message += short.symbol + " - " + short.quantity + " - will cost $" + short.asset_value + " to close position\n";
+                            });
+                        }
                         message += "Your un-invested cash is " + response.cash + "\n";
                         message += "Your total portfolio value is " + response.portfolio_value + "\n";
                         if (response.cash/response.portfolio_value > 0.8) {
@@ -75,6 +81,40 @@ module.exports = function(robot) {
                     } else {
                         msg.send(response.msg);
                     } 
+                } catch(err) {
+                    console.log(err);
+                    msg.send("Something went wrong.  Probably your fault");
+                }
+            });
+    });
+    robot.hear(/stock short (\d+) (.*)/, function(msg) {
+        msg.http(config.api_url + "/api/short").query({user: msg.message.user.name, volume: msg.match[1], symbol: msg.match[2]})
+            .get()(function(err, resp, body) {
+                var response = null;
+                try {
+                    response = JSON.parse(body);
+                    if (response.success) {
+                        msg.send("You're in.  I hope you know what you're doing");
+                    } else {
+                        msg.send(response.msg);
+                    }
+                } catch (err) {
+                    console.log(err);
+                    msg.send("Something went wrong.  Probably your fault");
+                }
+            });
+    });
+    robot.hear(/close short (.*)/, function(msg) {
+        msg.http(config.api_url + "/api/exit_short").query({user: msg.message.user.name, symbol: msg.match[1]})
+            .get()(function(err, resp, body) {
+                var response = null;
+                try {
+                    response = JSON.parse(body);
+                    if (response.success) {
+                        msg.send("Short position closed for $" + response.exit_cost);
+                    } else {
+                        msg.send(response.msg);
+                    }
                 } catch(err) {
                     console.log(err);
                     msg.send("Something went wrong.  Probably your fault");
