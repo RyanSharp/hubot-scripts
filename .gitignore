@@ -1,0 +1,4 @@
+hubot-scripts/config.js
+hubot-scripts/example.coffee
+**/*.pyc
+*.pyc
