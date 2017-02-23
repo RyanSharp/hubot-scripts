@@ -1,0 +1,15 @@
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /api/.*
+  script: handlers.api.app
+  login: optional
+  secure: always
+
+libraries:
+- name: ssl
+  version: latest
+- name: webapp2
+  version: latest
