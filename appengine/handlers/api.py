@@ -9,7 +9,7 @@ import json
 def get_account(username):
     account = Account.query(Account.username == username).get()
     if not account:
-        account = Account(username=username, cash_funds=250000, holdings=[])
+        account = Account(username=username, cash_funds=250000, holdings=[], shorts=[])
         account.put()
     return account
 
@@ -19,8 +19,6 @@ def get_stock_data_from_yahoo(ticker):
     url = url.format(ticker)
     http = httplib2.Http()
     resp, content = http.request(url, method="GET")
-    print resp
-    print content
     try:
         content = json.loads(content)
         content = {
@@ -96,6 +94,22 @@ class StatusUpdate(RequestHandler):
                     "asset_value": holding.quantity * stock_data["price"],
                 })
                 total += (holding.quantity * stock_data["price"])
+            rdict["shorts"] = []
+            shorts = account.shorts if account.shorts else []
+            for short in shorts:
+                stock_data = get_stock_data_from_yahoo(short.ticker)
+                if stock_data is None:
+                    continue
+                asset_volume = stock_data["market_volume"]
+                if short.market_volume != int(asset_volume):
+                    short.quantity = short.quantity * (int(asset_volume)/short.market_volume)
+                    short.market_volume = int(asset_volume)
+                rdict["holdings"].append({
+                    "symbol": short.ticker,
+                    "quantity": short.quantity,
+                    "asset_value": short.quantity * stock_data["price"],
+                })
+                total -= (short.quantity * stock_data["price"])
             rdict["cash"] = account.cash_funds
             rdict["portfolio_value"] = account.cash_funds + total
             account.put()
@@ -143,6 +157,76 @@ class Sell(RequestHandler):
                     holdings.append(holding)
                 account.holdings = holdings
             account.put()
+        else:
+            rdict["msg"] = "No data for symbol."
+        self.response.write(json.dumps(rdict))
+
+
+class Short(RequestHandler):
+    def get(self):
+        rdict = {"success": False}
+        ticker = self.request.get("symbol")
+        stock_data = get_stock_data_from_yahoo(ticker)
+        if stock_data is not None:
+            quantity = float(self.request.get("volume"))
+            username = self.request.get("user")
+            account = get_account(username)
+            asset_volume = stock_data["market_volume"]
+            cash_sell = quantity * stock_data["price"]
+            shorts = account.shorts if account.shorts is not None else []
+            for short in shorts:
+                if short.ticker == ticker:
+                    if int(asset_volume) != short.market_volume:
+                        short.quantity = short.quantity * (int(asset_volume)/short.market_volum)
+                        short.market_volume = int(asset_volume)
+                    short.quantity += quantity
+                    break
+            else:
+                short = Holding(ticker=ticker,
+                                quantity=quantity,
+                                market_volume=int(asset_volume))
+                shorts.append(short)
+            account.shorts = shorts
+            account.cash_funds += cash_sell
+            account.put()
+            rdict["success"] = True
+        else:
+            rdict["msg"] = "No data for symbol."
+        self.response.write(json.dumps(rdict))
+
+
+class DivesetShortPosition(RequestHandler):
+    def get(self):
+        rdict = {"success": False}
+        ticker = self.request.get("symbol")
+        stock_data = get_stock_data_from_yahoo(ticker)
+        if stock_data is not None:
+            username = self.request.get("user")
+            account = get_account(username)
+            shorts = account.shorts if account.shorts else []
+            asset_volume = stock_data["market_volume"]
+            index = 0
+            sell_price = None
+            for short in shorts:
+                if short.ticker == ticker:
+                    if int(asset_volume) != short.market_volume:
+                        short.quantity = short.quantity * (int(asset_volume)/short.market_volum)
+                        short.market_volume = int(asset_volume)
+                    sell_price = short.quantity * stock_data["price"]
+                    break
+                index += 1
+            if sell_price is None:
+                rdict["msg"] = "No short position for that symbol"
+            else:
+                shorts = []
+                for short in account.shorts:
+                    if short.ticker != ticker:
+                        shorts.append(ticker)
+                account.shorts = shorts
+                account.cash_funds -= sell_price
+                account.put()
+                rdict["success"] = True
+                rdict["exit_cost"] = sell_price
         else:
             rdict["msg"] = "No data for symbol."
         self.response.write(json.dumps(rdict))
@@ -212,6 +296,8 @@ app = ndb.toplevel(WSGIApplication([
     ("/api/buy", Buy),
     ("/api/sell", Sell),
     ("/api/status", StatusUpdate),
+    ("/api/short", Short),
+    ("/api/exit_short", DivesetShortPosition),
     ("/api/save_posted_img_url", SaveImage),
     ("/api/random_posted_img_url", GetRandomImage),
     ("/api/set_home", SetHome),

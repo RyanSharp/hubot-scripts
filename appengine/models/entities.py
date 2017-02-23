@@ -11,6 +11,7 @@ class Account(ndb.Model):
     username = ndb.StringProperty()
     cash_funds = ndb.FloatProperty()
     holdings = ndb.StructuredProperty(Holding, repeated=True)
+    shorts = ndb.StructuredProperty(Holding, repeated=True)
 
 
 class Transaction(ndb.Model):
