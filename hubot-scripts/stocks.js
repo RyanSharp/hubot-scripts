@@ -49,15 +49,17 @@ module.exports = function(robot) {
                                 message += holding.symbol + " - " + holding.quantity + " - $" + holding.asset_value + " ($" + (holding.asset_value/holding.quantity) + " per share)\n";
                             });
                         }
+                        var cash = response.cash;
                         if (response.shorts && response.shorts.length > 0) {
                             message += "Short Positions:\n";
                             response.shorts.map(function(short) {
+                                cash -= short.asset_value;
                                 message += short.symbol + " - " + short.quantity + " - will cost $" + short.asset_value + " to close position\n";
                             });
                         }
-                        message += "Your un-invested cash is " + response.cash + "\n";
+                        message += "Your un-invested cash is " + cash + "\n";
                         message += "Your total portfolio value is " + response.portfolio_value + "\n";
-                        if (response.cash/response.portfolio_value > 0.8) {
+                        if (cash/response.portfolio_value > 0.8) {
                             message += "Wtf?  You're too liquid.  You're like diarrhea";
                         } 
                         msg.send(message);

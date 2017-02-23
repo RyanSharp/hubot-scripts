@@ -1,4 +1,11 @@
 const config = require("./config");
+var pos = require("pos");
+
+const sentence = "I open the box";
+var words = new pos.Lexer().lex(sentence);
+console.log(words);
+var tagger = new pos.Tagger();
+console.log(tagger.tag(words));
 
 module.exports = function(robot) {
     robot.hear(/(swiggity swooty|swiggityswooty|swiggityswoogity|swiggity swoogity)/, function(msg) {
