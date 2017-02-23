@@ -26,7 +26,16 @@ module.exports = function(robot) {
         msg.send(config.lunch_options[Math.floor(config.lunch_options.length * Math.random())]);
     });
     robot.hear(/roll/, function(msg) {
-        msg.send(msg.message.user.name + " rolled a " + (Math.floor(Math.random() * 100) + 1));
+        var roll_result = (Math.floor(Math.random() * 20) + 1);
+        if (roll_result === 20) {
+            msg.send(msg.message.user.name + " rolled a fucking natural 20!");
+        }
+        else if (roll_result === 1) {
+            msg.send("Critical miss. " + msg.message.user.name + " rolled a 1, loser.");
+        }
+        else {
+            msg.send(msg.message.user.name + " rolled a " + roll_result);
+        }
     });
     robot.hear(/set home (.*)/, function(msg) {
         msg.http(config.api_url + "/api/set_home").query({user: msg.message.user.name, address: msg.match[1]})
