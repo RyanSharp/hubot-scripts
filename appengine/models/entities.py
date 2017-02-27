@@ -30,3 +30,17 @@ class PostedImage(ndb.Model):
 class UserHome(ndb.Model):
     address = ndb.StringProperty()
     username = ndb.StringProperty()
+
+
+class Attendees(ndb.Model):
+    username = ndb.StringProperty()
+    accepted = ndb.BooleanProperty()
+    pending = ndb.BooleanProperty()
+
+
+class Event(ndb.Model):
+    event_name = ndb.StringProperty()
+    location = ndb.StringProperty()
+    start_time = ndb.IntegerProperty()
+    attendees = ndb.StructuredProperty(Attendees, repeated=True)
+    created = ndb.DateTimeProperty(auto_now_add=True)

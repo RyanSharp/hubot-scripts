@@ -1,7 +1,8 @@
 from webapp2 import RequestHandler, WSGIApplication
 from google.appengine.ext.key_range import ndb
-from models.entities import Account, Holding, Transaction, PostedImage, UserHome
+from models.entities import Account, Holding, Transaction, PostedImage, UserHome, Event, Attendees
 import httplib2
+import logging
 import random
 import json
 
@@ -300,6 +301,60 @@ class GetRandomImage(RequestHandler):
         self.response.write(json.dumps(rdict))
 
 
+def get_event_by_name(event_name):
+    event = Event.query(Event.event_name == event_name).get()
+    if event is None:
+        event = Event(event_name=event_name,
+                      attendees=[])
+        event.put()
+    return event
+
+
+class EventHandler(RequestHandler):
+    def get(self):
+        rdict = {"success": False}
+        event_name = self.request.get("event_name")
+        try:
+            event = get_event_by_name(event_name)
+            rdict["event"] = {
+                "event_name": event.event_name,
+                "location": event.location,
+                "start_time": event.start_time,
+                "attendees": [],
+                "created": event.created.strftime("%c")
+            }
+            for attendee in event.attendees:
+                rdict["attendees"].append({
+                    "username": attendee.username,
+                    "accepted": attendee.accepted,
+                    "pending": attendee.pending,
+                })
+            rdict["success"] = True
+        except Exception as e:
+            logging.exception(e)
+            rdict["msg"] = e.message
+        self.response.write(json.dumps(rdict))
+
+    def post(self):
+        rdict = {"success": False}
+        try:
+            data = json.loads(self.request.body)
+            event = get_event_by_name(data["event_name"])
+            event.location = data["location"]
+            event.start_time = data["start_time"]
+            attendees = []
+            for attendee in data["attendees"]:
+                attendees.append(Attendees(username=attendee["username"],
+                                           accepted=attendee["accepted"],
+                                           pending=attendee["pending"]))
+            event.put()
+            rdict["success"] = True
+        except Exception as e:
+            logging.exception(e)
+            rdict["msg"] = e.message
+        self.response.write(json.dumps(rdict))
+
+
 app = ndb.toplevel(WSGIApplication([
     ("/api/buy", Buy),
     ("/api/sell", Sell),
@@ -310,4 +365,5 @@ app = ndb.toplevel(WSGIApplication([
     ("/api/random_posted_img_url", GetRandomImage),
     ("/api/set_home", SetHome),
     ("/api/get_home", GetHome),
+    ("/api/event", EventHandler),
 ], debug=True))
