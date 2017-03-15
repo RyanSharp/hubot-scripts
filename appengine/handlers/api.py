@@ -28,12 +28,19 @@ def get_stock_data_from_yahoo(ticker):
         }
         return content
     except Exception as e:
-        print e
+        logging.exception(e)
         return None
 
 
 class Buy(RequestHandler):
+    '''
+    Handles aquisition of new assets
+    '''
     def get(self):
+        '''
+        Takes in a symbol, volume, and username
+        Attempts to purchase asset on behalf of user
+        '''
         rdict = {"success": False}
         ticker = self.request.get("symbol")
         stock_data = get_stock_data_from_yahoo(ticker)
@@ -49,6 +56,8 @@ class Buy(RequestHandler):
                     asset_volume = data["market_volume"]
                     if short.market_volume != int(asset_volume):
                         short.quantity = short.quantity * (int(asset_volume)/short.market_volume)
+                        if short.quantity == 0:
+                            raise ValueError("Quantity Miscalculation")
                         short.market_volume = int(asset_volume)
                     funds -= short.quantity * data["price"]
                 purchase_cost = quantity * stock_data["price"]
@@ -60,6 +69,8 @@ class Buy(RequestHandler):
                             if int(asset_volume) != holding.market_volume:
                                 holding.quantity =\
                                     holding.quantity * (asset_volume/holding.market_volume)
+                                if holding.quantity == 0:
+                                    raise ValueError("Quantity Miscalculation")
                                 holding.market_volume = int(asset_volume)
                             holding.quantity += quantity
                             break
@@ -96,6 +107,8 @@ class StatusUpdate(RequestHandler):
                 asset_volume = stock_data["market_volume"]
                 if holding.market_volume != int(asset_volume):
                     holding.quantity = holding.quantity * (int(asset_volume)/holding.market_volume)
+                    if holding.quantity == 0:
+                        raise ValueError("Quantity Miscalculation")
                     holding.market_volume = int(asset_volume)
                 rdict["holdings"].append({
                     "symbol": holding.ticker,
@@ -112,6 +125,8 @@ class StatusUpdate(RequestHandler):
                 asset_volume = stock_data["market_volume"]
                 if short.market_volume != int(asset_volume):
                     short.quantity = short.quantity * (int(asset_volume)/short.market_volume)
+                    if short.quantity == 0:
+                        raise ValueError("Quantity Miscalculation")
                     short.market_volume = int(asset_volume)
                 rdict["shorts"].append({
                     "symbol": short.ticker,
@@ -144,6 +159,8 @@ class Sell(RequestHandler):
                     if int(asset_volume) != holding.market_volume:
                         holding.quantity =\
                             holding.quantity * (int(asset_volume)/holding.market_volume)
+                        if holding.quantity == 0:
+                            raise ValueError("Quantity Miscalculation")
                         holding.market_volume = int(asset_volume)
                     quantity = min(holding.quantity, quantity)
                     holding.quantity -= quantity
@@ -187,6 +204,8 @@ class Short(RequestHandler):
                 if short.ticker == ticker:
                     if int(asset_volume) != short.market_volume:
                         short.quantity = short.quantity * (int(asset_volume)/short.market_volum)
+                        if short.quantity == 0:
+                            raise ValueError("Quantity Miscalculation")
                         short.market_volume = int(asset_volume)
                     short.quantity += quantity
                     break
@@ -220,6 +239,8 @@ class DivesetShortPosition(RequestHandler):
                 if short.ticker == ticker:
                     if int(asset_volume) != short.market_volume:
                         short.quantity = short.quantity * (int(asset_volume)/short.market_volum)
+                        if short.quantity == 0:
+                            raise ValueError("Quantity Miscalculation")
                         short.market_volume = int(asset_volume)
                     sell_price = short.quantity * stock_data["price"]
                     break

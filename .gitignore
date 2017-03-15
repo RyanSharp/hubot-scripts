@@ -2,4 +2,4 @@ hubot-scripts/hidden.js
 hubot-scripts/example.coffee
 **/*.pyc
 *.pyc
-appengine/libs
+appengine/lib
