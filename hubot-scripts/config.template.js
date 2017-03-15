@@ -4,6 +4,14 @@ const LUNCH_OPTIONS = [
     "Lunch Option #3",
 ];
 
+const IMPRESSIVE_ACTIONS = [
+    ""
+];
+
+const PATHETIC_ACTIONS = [
+    ""
+];
+
 function encodeJSONForURI(params) {
     return Object.keys(params).map(function(k) {
         return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]);
