@@ -34,6 +34,46 @@ module.exports = function(robot) {
                 }
             });
     });
+    robot.hear(/show me ([a-zA-Z0-9\._-]*)'s money/, function(msg) {
+        console.log(msg);
+        if (msg.match[1] === "ryansharp") return;
+        msg.http(config.api_url + "/api/status").query({user: msg.match[1]})
+            .get()(function(err, resp, body) {
+                var response = null;
+                try {
+                    response = JSON.parse(body);
+                    var message = "";
+                    if (response.success) {
+                        if (response.holdings.length === 0) {
+                            message += "You got no investments.  You're pathetic\n";
+                        } else {
+                            response.holdings.map(function(holding) {
+                                message += holding.symbol + " - " + holding.quantity + " - $" + holding.asset_value + " ($" + (holding.asset_value/holding.quantity) + " per share)\n";
+                            });
+                        }
+                        var cash = response.cash;
+                        if (response.shorts && response.shorts.length > 0) {
+                            message += "Short Positions:\n";
+                            response.shorts.map(function(short) {
+                                cash -= short.asset_value;
+                                message += short.symbol + " - " + short.quantity + " - will cost $" + short.asset_value + " to close position\n";
+                            });
+                        }
+                        message += "Your un-invested cash is " + cash + "\n";
+                        message += "Your total portfolio value is " + response.portfolio_value + "\n";
+                        if (cash/response.portfolio_value > 0.8) {
+                            message += "Wtf?  You're too liquid.  You're like diarrhea";
+                        } 
+                        msg.send(message);
+                    } else {
+                        msg.send(response.msg);
+                    }
+                } catch(err) {
+                    console.log(err);
+                    msg.send("Something went wrong.  Probably your fault");
+                }
+            });
+    });
     robot.hear(/show me the money/, function(msg) {
         msg.http(config.api_url + "/api/status").query({user: msg.message.user.name})
             .get()(function(err, resp, body) {

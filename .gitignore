@@ -3,3 +3,5 @@ hubot-scripts/example.coffee
 **/*.pyc
 *.pyc
 appengine/lib
+.DS_Store
+
