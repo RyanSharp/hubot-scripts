@@ -35,6 +35,10 @@ module.exports = function(robot) {
     robot.hear(/^roll d(4|6|8|10|12|20)$/, function(msg) {
         var ceiling = Number(msg.match[1]);
         var roll_result = (Math.floor(Math.random() * ceiling) + 1);
+<<<<<<< HEAD
+=======
+        console.log(roll_result);
+>>>>>>> c538f62644f979fd2516be38bd0bbd926b5f28ec
         if (roll_result === ceiling) {
             msg.send(msg.message.user.name + " rolled a fucking natural " + ceiling + "!");
         }
