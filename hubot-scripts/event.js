@@ -1,82 +1,86 @@
 const config = require("./config");
 
-class Event {
-    constructor(event_name, callback) {
-        this.properties = {event_name: event_name};
-        this.loadFromServer(callback);
-    }
-    loadFromServer(callback) {
-        ROBOT.http(config.api_url + "/api/event").query({event_name: this.properties.event_name})
-            .get()(function(err, resp, body) {
-                try {
-                    var response = JSON.parse(body);
-                    if (response.success) {
-                        this.properties = response.event;
-                        callback("Active event set");
-                    } else {
-                        console.log(response);
-                        callback("Something went wrong");
-                    }
-                } catch(err) {
-                    console.log(err);
+function Event(event_name, callback) {
+    this.properties = {event_name: event_name};
+    this.loadFromServer(callback);
+}
+
+Event.prototype.loadFromServer = function(callback) {
+    ROBOT.http(config.api_url + "/api/event").query({event_name: this.properties.event_name})
+        .get()(function(err, resp, body) {
+            try {
+                var response = JSON.parse(body);
+                if (response.success) {
+                    this.properties = response.event;
+                    callback("Active event set");
+                } else {
+                    console.log(response);
                     callback("Something went wrong");
                 }
-            }.bind(this));
-    }
-    save(callback) {
-        ROBOT.http(config.api_url + "/api/event")
-            .post(JSON.stringify(this.properties))(function(err, resp, body) {
-                try {
-                    var response = JSON.parse(body);
-                    if (response.success) {
-                        callback("Event updated");
-                    } else {
-                        console.log(response);
-                        callback("Something went wrong");
-                    }
-                } catch(err) {
-                    console.log(err);
+            } catch(err) {
+                console.log(err);
+                callback("Something went wrong");
+            }
+        }.bind(this));
+}
+Event.prototype.save = function(callback) {
+    ROBOT.http(config.api_url + "/api/event")
+        .post(JSON.stringify(this.properties))(function(err, resp, body) {
+            try {
+                var response = JSON.parse(body);
+                if (response.success) {
+                    callback("Event updated");
+                } else {
+                    console.log(response);
                     callback("Something went wrong");
                 }
-            }.bind(this));
+            } catch(err) {
+                console.log(err);
+                callback("Something went wrong");
+            }
+        }.bind(this));
+}
+
+Event.prototype.inviteUser = function(username) {
+    if (this.properties.attendees.map(function(a){return a.username}).indexOf(username) >= 0) {
+        return;
     }
-    inviteUser(username) {
-        if (this.properties.attendees.map(function(a){return a.username}).indexOf(username) >= 0) {
-            return;
-        }
-        var invite = {
-            username: username,
-            pending: true,
-            accepted: false,
-        }
-        this.properties.attendees.push(invite);
-        ROBOT.send({room: "@" + username}, "You've been invited to " + this.properties.event_name + ".  Please reply with either 'attending' or 'go fuck yourself'");
+    var invite = {
+        username: username,
+        pending: true,
+        accepted: false,
     }
-    remindUser(username) {
-        var index = this.properties.attendees.map(function(a){return a.username}).indexOf(username);
-        if (index >= 0 && this.properties.attendees[index].pending) {
-            ROBOT.send({room: "@" + username}, "Hey asshole, why didn't you RSVP for " + this.properties.event_name + ".  Please reply with either 'attending' or 'go fuck yourself'");
-        }
-    }
-    setUserAttending(username) {
-        var index = this.properties.attendees.map(function(a){return a.username}).indexOf(username);
-        if (index >= 0) {
-            this.properties.attendees[index].pending = false;
-            this.properties.attendees[index].accepted = true;
-            return "Yes!  You're in!  Everybody is gonna be so excited";
-        }
-        return "Ummm.  Sorry to be the one to break it to you, but you weren't invited";
-    }
-    setUserDecline(username) {
-        var index = this.properties.attendees.map(function(a){return a.username}).indexOf(username);
-        if (index >= 0) {
-            this.properties.attendees[index].pending = false;
-            this.properties.attendees[index].accepted = false;
-            return "Well, I knew you were a little bitch.  This just confirms it."
-        }
-        return "LOL.  You're declining, but they didnt' even invite you!";
+    this.properties.attendees.push(invite);
+    ROBOT.send({room: "@" + username}, "You've been invited to " + this.properties.event_name + ".  Please reply with either 'attending' or 'go fuck yourself'");
+}
+
+Event.prototype.remindUser = function(username) {
+    var index = this.properties.attendees.map(function(a){return a.username}).indexOf(username);
+    if (index >= 0 && this.properties.attendees[index].pending) {
+        ROBOT.send({room: "@" + username}, "Hey asshole, why didn't you RSVP for " + this.properties.event_name + ".  Please reply with either 'attending' or 'go fuck yourself'");
     }
 }
+
+Event.prototype.setUserAttending = function(username) {
+    var index = this.properties.attendees.map(function(a){return a.username}).indexOf(username);
+    if (index >= 0) {
+        this.properties.attendees[index].pending = false;
+        this.properties.attendees[index].accepted = true;
+        return "Yes!  You're in!  Everybody is gonna be so excited";
+    }
+    return "Ummm.  Sorry to be the one to break it to you, but you weren't invited";
+}
+
+Event.prototype.setUserDecline = function(username) {
+    var index = this.properties.attendees.map(function(a){return a.username}).indexOf(username);
+    if (index >= 0) {
+        this.properties.attendees[index].pending = false;
+        this.properties.attendees[index].accepted = false;
+        return "Well, I knew you were a little bitch.  This just confirms it."
+    }
+    return "LOL.  You're declining, but they didnt' even invite you!";
+}
+
 var ROBOT;
 module.exports = function(robot) {
     ROBOT = robot;
