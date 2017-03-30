@@ -10,7 +10,7 @@ module.exports = function(robot) {
         console.log(memory);
     });
     robot.respond(/last (\d+) things ([a-zA-Z0-9\._-]+) said/, function(msg) {
-        var count = Number(msg.match[1]);
+        var count = Math.min(Number(msg.match[1]), 100);
         var username = msg.match[2];
         var message = "Here are the last " + count + " things " + username + " has said\n";
         var messages = memory[username] || [];
