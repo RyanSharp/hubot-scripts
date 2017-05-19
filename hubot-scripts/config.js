@@ -44,6 +44,11 @@ const PATHETIC_ACTIONS = [
     "died of dysntery",
 ];
 
+const NAME_EXCEPTION_LIST = [
+    "bryan.rocha",
+    "ryansharp",
+];
+
 function encodeJSONForURI(params) {
     return Object.keys(params).map(function(k) {
         return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]);
@@ -58,4 +63,5 @@ module.exports = {
     encodeJSONForURI: encodeJSONForURI,
     impressive_actions: IMPRESSIVE_ACTIONS,
     pathetic_actions: PATHETIC_ACTIONS,
+    name_exception_list: NAME_EXCEPTION_LIST,
 }
