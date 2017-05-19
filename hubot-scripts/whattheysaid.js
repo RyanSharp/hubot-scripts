@@ -1,13 +1,17 @@
+const config = require("./config");
+
 module.exports = function(robot) {
     var memory = {};
     robot.hear(/(.*)/, function(msg) {
-        var prev = memory[msg.message.user.name] || [];
-        prev.push(msg.match[1]);
-        while (prev.length > 100) {
-            prev.splice(0, 1);
+	if (config.name_exception_list.indexOf(msg.message.user.name) == -1) {
+            var prev = memory[msg.message.user.name] || [];
+            prev.push(msg.match[1]);
+            while (prev.length > 100) {
+                prev.splice(0, 1);
+            }
+            memory[msg.message.user.name] = prev;
+            console.log(memory);
         }
-        memory[msg.message.user.name] = prev;
-        console.log(memory);
     });
     robot.respond(/last (\d+) things ([a-zA-Z0-9\._-]+) said/, function(msg) {
         var count = Math.min(Number(msg.match[1]), 100);
